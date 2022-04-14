@@ -7,24 +7,13 @@ from google_form import post_despesa,post_receita,post_reserva
 
     
 def delete_files():
-    try:
-        os.remove('categoria.txt')
-    except:
-        pass
-    try:
-        os.remove('valor.txt')
-    except:
-        pass
-    try:
-        os.remove('subcategoria.txt')
-    except:
-        pass
-    try:
-        os.remove('especificacao.txt')
-    except:
-        pass
+    list_files=['categoria.txt','valor.txt','subcategoria.txt','especificacao.txt','pagamento.txt']
 
-
+    for file in list_files:
+    try:
+        os.remove(file)
+    except:
+        pass
 
 
 
@@ -70,6 +59,17 @@ def get_especificacao():
         especificacao=f.read()
         f.close()
     return especificacao
+
+def set_pagamento(pagamento):
+    with open('pagamento.txt','w+') as f:
+        f.write(pagamento)
+        f.close()
+def get_pagamento():
+    with open('pagamento.txt','r') as f:
+        pagamento=f.read()
+        f.close()
+    return pagamento
+
 
 def letter2key(categoria,letter):
     dict_despesa={'a':'Educação','b':'Lazer','c':'Comida','d':'Uber','e':'1001','f':'Lanche','g':'Outro','h':'Internet','i':'Onibus','j':'Cartao','k':'roupa','l':'farmacia'}
@@ -129,16 +129,23 @@ def msg_summary(type='a'):
     valor=get_valor()
     subcategoria=get_subcategoria()
     especificacao=get_especificacao
-    post_form(categoria,valor,subcategoria,especificacao)
+    pagamento=get_pagamento()
+    post_form(categoria,valor,subcategoria,especificacao,pagamento)
     if type=='a':
         text=f'As seguintes informações foram armazenadas:\n*R${valor}*\n*{categoria}*\n*{subcategoria}*'
-    else:
+    elif type=='b':
         text=f'As seguintes informações foram armazenadas:\n*R${valor}*\n*{categoria}*\n*{subcategoria}*\n*{especificacao}*'
+    else:
+        text=f'As seguintes informações foram armazenadas:\n*R${valor}*\n*{categoria}*\n*{subcategoria}*\n*{especificacao}*,\n*{pagamento}*'
     delete_files()
     return text_answer(text,end=False)
     
 def msg_especifique():
     text='*Especifique abaixo*'
+    return text_answer(text)
+
+def msg_pagamento():
+    text='*Escreva qual foi a modalidade de pagamento utilizada dentre as opções:\nDinheiro\nDébito\nCrédito\nFlash*'
     return text_answer(text)
 
 def final():
@@ -182,23 +189,30 @@ def main():
         categoria=get_categoria()
         subcategoria=letter2key(categoria,incoming_msg)
         set_subcategoria(subcategoria)
-        set_especificacao('')
+        set_especificacao(None)
         if subcategoria=='Outro':
-            answer=msg_especifique()
+                answer=msg_especifique()
 
-        else:
-            
-            answer=msg_summary(type='a')
+        elif 'despesa' not in  categoria:                
+                answer=msg_summary(type='a')
+
 
     elif 'fim' in incoming_msg:
         print('delete')
         delete_files()
         answer=final() 
 
+    elif os.path.isfile('pagamento.txt'):
+        set_pagamento(incoming_msg)
+        answer=msg_summary('c')    
+
     elif os.path.isfile('especificacao.txt'):
-        set_especificacao(incoming_msg)
-        
-        answer=msg_summary('b')
+        if 'despesa' not in  categoria:
+            set_especificacao(incoming_msg)            
+            answer=msg_summary('b')
+        else:
+            msg_pagamento()
+            set_pagamento(None)
 
     else:
         answer=msg_financas()
