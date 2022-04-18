@@ -258,5 +258,7 @@ if __name__ == '__main__':
 
 ## ver a possibilidade de colocar isso em um labda da aws.
 
+## matar ifs com dicionario ou com polimorfismo. 
+
 
 
