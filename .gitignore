@@ -1,2 +1,2 @@
-whatsapp-bot/*
-__pycache__/*
+whatsapp-bot/**
+__pycache__/**
