@@ -10,12 +10,20 @@ def delete_files():
     list_files=['categoria.txt','valor.txt','subcategoria.txt','especificacao.txt','pagamento.txt']
 
     for file in list_files:
-    try:
-        os.remove(file)
-    except:
-        pass
+        try:
+            os.remove(file)
+        except:
+            pass
 
+def pagamento2format(pagamento):
+    dict_despesa={'débito':'Débito','flash':'Flash','crédito':'Cartão de Crédito','dinheiro':'Dinheiro','1':None}
+    pagamento=dict_despesa[pagamento]
+    return pagamento
 
+def especificacao2format(especificacao):
+    if especificacao=='1':
+        especificacao=None
+    return especificacao
 
 def set_categoria(categoria):
     with open('categoria.txt','w+') as f:
@@ -54,10 +62,12 @@ def set_especificacao(especificacao):
     with open('especificacao.txt','w+') as f:
         f.write(especificacao)
         f.close()
+        
 def get_especificacao():
     with open('especificacao.txt','r') as f:
         especificacao=f.read()
         f.close()
+    especificacao=especificacao2format(especificacao)
     return especificacao
 
 def set_pagamento(pagamento):
@@ -67,6 +77,7 @@ def set_pagamento(pagamento):
 def get_pagamento():
     with open('pagamento.txt','r') as f:
         pagamento=f.read()
+        pagamento=pagamento2format(pagamento)
         f.close()
     return pagamento
 
@@ -83,17 +94,17 @@ def letter2key(categoria,letter):
         return dict_reserva[letter]
 
 
-def post_form(categoria,valor,subcategoria,especificacao):
+def post_form(categoria,valor,subcategoria,especificacao,pagamento):
     if 'despesa' in categoria:
-        post_despesa(valor,subcategoria,especificacao)
+       return post_despesa(valor,subcategoria,especificacao,pagamento)
     if 'receita' in categoria:
-        post_receita(valor,subcategoria,especificacao)
+        return post_receita(valor,subcategoria,especificacao,pagamento)
     else:
-        post_reserva(valor,subcategoria,especificacao)
+        return post_reserva(valor,subcategoria,especificacao,pagamento)
     
     
 def text_answer(text,end=True):
-    sentence_end='\nPara encerrar o log finaceiro escreve "fim"'
+    sentence_end='\nPara encerrar o log finaceiro escreva "fim"'
     resp = MessagingResponse()
     text=text
     msg = resp.message()
@@ -124,19 +135,23 @@ def msg_reserva():
     text='*Digite a categoria da reserva*:\na - Poupança,\nb - Investimento,\nc - Outro'    
     return text_answer(text)
 
-def msg_summary(type='a'):
+def msg_summary():
     categoria= get_categoria()
     valor=get_valor()
     subcategoria=get_subcategoria()
-    especificacao=get_especificacao
+    especificacao=get_especificacao()
     pagamento=get_pagamento()
-    post_form(categoria,valor,subcategoria,especificacao,pagamento)
-    if type=='a':
-        text=f'As seguintes informações foram armazenadas:\n*R${valor}*\n*{categoria}*\n*{subcategoria}*'
-    elif type=='b':
-        text=f'As seguintes informações foram armazenadas:\n*R${valor}*\n*{categoria}*\n*{subcategoria}*\n*{especificacao}*'
-    else:
-        text=f'As seguintes informações foram armazenadas:\n*R${valor}*\n*{categoria}*\n*{subcategoria}*\n*{especificacao}*,\n*{pagamento}*'
+    status_code=post_form(categoria,valor,subcategoria,especificacao,pagamento)
+    print(status_code)
+    if especificacao == None and pagamento==None:
+        text=f'As seguintes informações foram armazenadas:\n*R${valor}*\n*{categoria}*\n*{subcategoria}*\nstatus : {status_code}'
+    elif pagamento==None:
+        text=f'As seguintes informações foram armazenadas:\n*R${valor}*\n*{categoria}*\n*{subcategoria}*\n*{especificacao}*\nstatus : {status_code}'
+    elif especificacao == None:
+        text=f'As seguintes informações foram armazenadas:\n*R${valor}*\n*{categoria}*\n*{subcategoria}*\n*{pagamento}*\nstatus : {status_code}'
+    else: 
+        text=f'As seguintes informações foram armazenadas:\n*R${valor}*\n*{categoria}*\n*{subcategoria}*\n*{especificacao}*\n*{pagamento}*\nstatus : {status_code}'
+        
     delete_files()
     return text_answer(text,end=False)
     
@@ -145,7 +160,7 @@ def msg_especifique():
     return text_answer(text)
 
 def msg_pagamento():
-    text='*Escreva qual foi a modalidade de pagamento utilizada dentre as opções:\nDinheiro\nDébito\nCrédito\nFlash*'
+    text='*Escreva qual foi a modalidade de pagamento utilizada dentre as opções*:\nDinheiro\nDébito\nCrédito\nFlash'
     return text_answer(text)
 
 def final():
@@ -189,12 +204,21 @@ def main():
         categoria=get_categoria()
         subcategoria=letter2key(categoria,incoming_msg)
         set_subcategoria(subcategoria)
-        set_especificacao(None)
+        set_especificacao('1')
+        print(202)    
         if subcategoria=='Outro':
                 answer=msg_especifique()
+        elif 'despesa' not in categoria:
+            
+            set_pagamento('1')                
+            answer=msg_summary()
+            
 
-        elif 'despesa' not in  categoria:                
-                answer=msg_summary(type='a')
+        else:
+            set_pagamento('1')                              
+            answer=msg_pagamento()
+            
+
 
 
     elif 'fim' in incoming_msg:
@@ -204,15 +228,22 @@ def main():
 
     elif os.path.isfile('pagamento.txt'):
         set_pagamento(incoming_msg)
-        answer=msg_summary('c')    
+        answer=msg_summary()    
 
     elif os.path.isfile('especificacao.txt'):
+        print('216')
+        categoria=get_categoria()
         if 'despesa' not in  categoria:
+            print('220')
             set_especificacao(incoming_msg)            
-            answer=msg_summary('b')
+            answer=msg_summary()
         else:
-            msg_pagamento()
-            set_pagamento(None)
+            print('223')
+            set_especificacao(incoming_msg)            
+
+            answer=msg_pagamento()
+
+        set_pagamento('1')
 
     else:
         answer=msg_financas()
@@ -224,4 +255,8 @@ def main():
 
 if __name__ == '__main__':
    app.run(debug=True)
+
+## ver a possibilidade de colocar isso em um labda da aws.
+
+
 
