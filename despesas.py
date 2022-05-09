@@ -235,15 +235,16 @@ def main():
         categoria=get_categoria()
         if 'despesa' not in  categoria:
             print('220')
+            set_pagamento('1')
             set_especificacao(incoming_msg)            
             answer=msg_summary()
         else:
             print('223')
-            set_especificacao(incoming_msg)            
-
+            set_pagamento('1')
+            set_especificacao(incoming_msg)   
             answer=msg_pagamento()
 
-        set_pagamento('1')
+        
 
     else:
         answer=msg_financas()
